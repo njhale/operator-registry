@@ -1,5 +1,5 @@
 CMDS  := $(addprefix bin/, $(shell go list ./cmd/... | xargs -I{} basename {}))
-MOD_FLAGS := $(shell (go version | grep -q 1.11) && echo -mod=vendor)
+MOD_FLAGS := $(shell (go version | grep -q -E "1\.(11|12)") && echo -mod=vendor)
 
 .PHONY: build test vendor clean
 
