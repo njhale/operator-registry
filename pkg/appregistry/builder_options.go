@@ -51,13 +51,22 @@ func (o *AppregistryBuildOptions) Validate() error {
 }
 
 func (o *AppregistryBuildOptions) Complete() error {
-	// if a user has specified a specific cache dir, don't clean it after run
-	o.CleanOutput = o.CacheDir == ""
+	// if a user hasn't specified a specific cache directory, generate a temporary one
+	if o.CacheDir == "" {
+		tmp, err := ioutil.TempDir("", "")
+		if err != nil {
+			return err
+		}
+		o.CacheDir = tmp
+
+		// clean up temporary directories
+		o.CleanOutput = true
+	}
 
 	// build a separate path for manifests and the built database, so that
 	// building is idempotent
 	if o.ManifestDir == "" {
-		manifestDir, err := ioutil.TempDir("", "manifests-")
+		manifestDir, err := ioutil.TempDir(o.CacheDir, "manifests-")
 		if err != nil {
 			return err
 		}
@@ -65,7 +74,7 @@ func (o *AppregistryBuildOptions) Complete() error {
 	}
 
 	if o.DatabaseDir == "" {
-		databaseDir, err := ioutil.TempDir("", "db-")
+		databaseDir, err := ioutil.TempDir(o.CacheDir, "db-")
 		if err != nil {
 			return err
 		}
@@ -88,7 +97,7 @@ func (c *AppregistryBuildOptions) Apply(options []AppregistryBuildOption) {
 // ToOption converts an AppregistryBuildOptions object into a function that applies
 // its current configuration to another AppregistryBuildOptions instance
 func (c *AppregistryBuildOptions) ToOption() AppregistryBuildOption {
-	return  func(o *AppregistryBuildOptions) {
+	return func(o *AppregistryBuildOptions) {
 		if c.Appender != nil {
 			o.Appender = c.Appender
 		}
