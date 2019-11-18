@@ -73,7 +73,7 @@ func (a *AppregistryLoader) Load(csvSources []string, csvPackages string) (regis
 
 	a.logger.Info("input has been sanitized")
 	a.logger.Infof("sources: %s", input.Sources)
-	a.logger.Infof("packages: %s", input.Packages)
+	a.logger.Infof("packages: %v", input.Packages)
 
 	rawManifests, err := a.downloader.Download(input)
 	if err != nil {

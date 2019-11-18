@@ -11,24 +11,29 @@ type OperatorSourceSpecifier interface {
 	Parse(specifiers []string) ([]*Source, error)
 }
 
+type Package struct {
+	Name    string
+	Release string
+}
+
 type Input struct {
 	// Sources is the set of remote operator source(s) specified where operator
 	// manifest(s) are located.
 	Sources []*Source
 
 	// Packages is the set of package name(s) specified.
-	Packages []string
+	Packages []Package
 }
 
 func (i *Input) IsGoodToProceed() bool {
 	return len(i.Sources) > 0 && len(i.Packages) > 0
 }
 
-func (i *Input) PackagesToMap() map[string]bool {
-	packages := map[string]bool{}
+func (i *Input) PackagesToMap() map[string]Package {
+	packages := map[string]Package{}
 
 	for _, pkg := range i.Packages {
-		packages[pkg] = false
+		packages[pkg.Name] = pkg
 	}
 
 	return packages
@@ -66,17 +71,21 @@ func (p *inputParser) Parse(csvSources []string, csvPackages string) (*Input, er
 
 // sanitizePackageList sanitizes the set of package(s) specified. It removes
 // duplicates and ignores empty string.
-func sanitizePackageList(in []string) []string {
-	out := make([]string, 0)
-
+func sanitizePackageList(in []string) (out []Package) {
 	inMap := map[string]bool{}
 	for _, item := range in {
-		if _, ok := inMap[item]; ok || item == "" {
+		pkg := Package{Name: item}
+		if parsed := strings.Split(item, ":"); len(parsed) > 1 {
+			pkg.Name = parsed[0]
+			pkg.Release = parsed[1]
+		}
+
+		if _, ok := inMap[pkg.Name]; ok || item == "" {
 			continue
 		}
 
 		inMap[item] = true
-		out = append(out, item)
+		out = append(out, pkg)
 	}
 
 	return out

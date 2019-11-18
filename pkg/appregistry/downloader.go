@@ -87,7 +87,9 @@ func (d *downloader) Prepare(input *Input) (items []*downloadItem, err error) {
 			// We use this as the key.
 			key := metadata.Name
 
-			if _, ok := packageMap[key]; ok {
+			if pkg, ok := packageMap[key]; ok {
+				metadata.Release = pkg.Release
+
 				// The package specified has been resolved to this repository
 				// name in remote registry.
 				itemMap[key] = &downloadItem{
