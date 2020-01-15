@@ -2,6 +2,7 @@ module github.com/operator-framework/operator-registry
 
 require (
 	github.com/antihax/optional v0.0.0-20180407024304-ca021399b1a6
+	github.com/asdine/storm/v3 v3.1.0
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang-migrate/migrate/v4 v4.6.2
@@ -18,7 +19,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271
+	golang.org/x/net v0.0.0-20191105084925-a882066a44e0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	google.golang.org/grpc v1.24.0
 	gopkg.in/yaml.v2 v2.2.4
@@ -28,6 +29,8 @@ require (
 	k8s.io/apimachinery v0.0.0-20191004115801-a2eda9f80ab8
 	k8s.io/client-go v0.0.0-20191016111102-bec269661e48
 	k8s.io/klog v1.0.0
+	k8s.io/kubectl v0.0.0-20191016120415-2ed914427d51
+	modernc.org/sqlite v1.3.0 // indirect
 )
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
