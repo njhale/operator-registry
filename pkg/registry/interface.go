@@ -37,3 +37,11 @@ type Query interface {
 	// Get Provided and Required APIs for a particular bundle
 	GetApisForEntry(ctx context.Context, entryId int64) (provided []*api.GroupVersionKind, required []*api.GroupVersionKind, err error)
 }
+
+type RegistryPopulator interface {
+	Populate() error
+}
+
+type Remover interface {
+	Remove() error
+}
