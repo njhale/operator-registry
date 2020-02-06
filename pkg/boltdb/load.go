@@ -2,11 +2,11 @@ package boltdb
 
 import (
 	"fmt"
-	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 
 	"github.com/asdine/storm/v3"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
+	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 	"github.com/operator-framework/operator-registry/pkg/registry"
 )
 

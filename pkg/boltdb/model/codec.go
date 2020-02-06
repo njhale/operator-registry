@@ -2,13 +2,14 @@ package model
 
 import (
 	"encoding/json"
+
 	"github.com/mitchellh/mapstructure"
 )
 
 var Codec = new(capCodec)
 
-var capabilityTypeForName = map[string]func() interface{} {}
-var requirementTypeForName = map[string]func() interface{} {}
+var capabilityTypeForName = map[string]func() interface{}{}
+var requirementTypeForName = map[string]func() interface{}{}
 
 type capCodec int
 
@@ -40,7 +41,7 @@ func (j capCodec) Unmarshal(b []byte, v interface{}) error {
 }
 
 func (j capCodec) UnmarshalBundle(o *OperatorBundle) error {
-	for i := range o.Capabilities{
+	for i := range o.Capabilities {
 		if err := j.UnmarshalCapability(&o.Capabilities[i]); err != nil {
 			return err
 		}

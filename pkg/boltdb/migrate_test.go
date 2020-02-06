@@ -4,17 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/asdine/storm/v3"
-	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
-	"github.com/operator-framework/operator-registry/pkg/registry/test"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/asdine/storm/v3"
 	"github.com/stretchr/testify/require"
 
+	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 	"github.com/operator-framework/operator-registry/pkg/registry"
+	"github.com/operator-framework/operator-registry/pkg/registry/test"
 	"github.com/operator-framework/operator-registry/pkg/sqlite"
 )
 
@@ -40,8 +40,9 @@ func TestEnsureBolt(t *testing.T) {
 	require.NoError(t, EnsureBolt(dbName, backupName))
 	bdb, err := storm.Open(dbName, storm.Codec(model.Codec))
 	require.NoError(t, err)
-	tx, err := bdb.Begin(true)
 
+	tx, err := bdb.Begin(true)
+	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 	defer bdb.Close()
 

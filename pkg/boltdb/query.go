@@ -3,11 +3,12 @@ package boltdb
 import (
 	"context"
 	"fmt"
+
 	"github.com/asdine/storm/v3"
 	"github.com/asdine/storm/v3/q"
-	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 
 	"github.com/operator-framework/operator-registry/pkg/api"
+	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 	"github.com/operator-framework/operator-registry/pkg/registry"
 )
 
@@ -15,7 +16,6 @@ import (
 type StormQuerier struct {
 	db *storm.DB
 }
-
 
 var _ registry.Query = &StormQuerier{}
 
@@ -104,9 +104,6 @@ func (s *StormQuerier) GetBundle(ctx context.Context, pkgName, channelName, csvN
 		if !ok {
 			continue
 		}
-		if err != nil {
-			return nil, err
-		}
 		bundle.ProvidedApis = append(bundle.ProvidedApis, &api.GroupVersionKind{
 			Group:   gvk.Group,
 			Version: gvk.Version,
@@ -123,9 +120,6 @@ func (s *StormQuerier) GetBundle(ctx context.Context, pkgName, channelName, csvN
 		gvk, ok := req.Selector.(*model.ApiEqualitySelector)
 		if !ok {
 			continue
-		}
-		if err != nil {
-			return nil, err
 		}
 		bundle.RequiredApis = append(bundle.RequiredApis, &api.GroupVersionKind{
 			Group:   gvk.Group,
@@ -165,9 +159,9 @@ func (s *StormQuerier) GetBundleThatReplaces(ctx context.Context, name, pkgName,
 }
 
 type GVKMatcher struct {
-	Group string
+	Group   string
 	Version string
-	Kind string
+	Kind    string
 }
 
 func (m GVKMatcher) MatchField(v interface{}) (bool, error) {

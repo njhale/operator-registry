@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/alicebob/sqlittle"
 	"github.com/asdine/storm/v3"
-	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 	bolt "go.etcd.io/bbolt"
-	"os"
+
+	"github.com/operator-framework/operator-registry/pkg/boltdb/model"
 )
 
 type rowMigrator func(node storm.Node, errs []error) (sqlittle.RowCB, string, []string)
