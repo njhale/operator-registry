@@ -13,6 +13,8 @@ const (
 	Podman = "podman"
 	// Docker cli tool
 	Docker = "docker"
+	// Containerd lib
+	Containerd = "containerd"
 )
 
 // CommandRunner defines methods to shell out to common container tools
