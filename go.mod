@@ -17,6 +17,7 @@ require (
 	github.com/garyburd/redigo v1.6.0 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
+	github.com/gogo/googleapis v1.3.2 // indirect
 	github.com/golang-migrate/migrate/v4 v4.6.2
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2

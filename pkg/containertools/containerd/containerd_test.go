@@ -2,7 +2,6 @@ package containerd
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/containerd/containerd/namespaces"
@@ -15,7 +14,9 @@ func TestPull(t *testing.T) {
 
 	ctx := namespaces.WithNamespace(context.Background(), namespaces.Default)
 	ref := "quay.io/olmtest/kiali:1.2.4"
-	img, err := runner.pull(ctx, ref)
+	_, err = runner.pull(ctx, ref)
 	require.NoError(t, err)
-	fmt.Printf("img: %v", img)
+
+	_, err = runner.client.Pull(ctx, ref)
+	require.NoError(t, err)
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/content"
 	contentlocal "github.com/containerd/containerd/content/local"
 	"github.com/containerd/containerd/images"
@@ -18,11 +19,14 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	bolt "go.etcd.io/bbolt"
 	"golang.org/x/sync/semaphore"
+
+	"github.com/operator-framework/operator-registry/pkg/containertools/containerd/local"
 )
 
 type ContainerdRunner struct {
 	store    content.Store
 	resolver remotes.Resolver
+	client   *containerd.Client
 }
 
 func NewContainerdRunner(opts ...ContainerdRunnerOption) (*ContainerdRunner, error) {
@@ -82,9 +86,19 @@ func newContainerdRunner(options *ContainerdRunnerOptions) (*ContainerdRunner, e
 		return nil, err
 	}
 
+	client, err := containerd.New("", containerd.WithServices(
+		containerd.WithContentStore(db.ContentStore()),
+		containerd.WithLeasesService(metadata.NewLeaseManager(db)),
+		containerd.WithImageService(local.NewImageService(db)),
+	))
+	if err != nil {
+		return nil, err
+	}
+
 	return &ContainerdRunner{
 		resolver: resolver,
 		store:    db.ContentStore(),
+		client:   client,
 	}, nil
 }
 
