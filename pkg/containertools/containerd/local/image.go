@@ -9,8 +9,7 @@ import (
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/log"
 	"github.com/containerd/containerd/metadata"
-	"github.com/containerd/containerd/remotes"
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -18,9 +17,8 @@ import (
 )
 
 type ImageService struct {
-	db       *metadata.DB
-	store    images.Store
-	resolver remotes.Resolver
+	db    *metadata.DB
+	store images.Store
 }
 
 func NewImageService(db *metadata.DB) *ImageService {
@@ -70,15 +68,7 @@ func (i *ImageService) Create(ctx context.Context, req *imagesapi.CreateImageReq
 
 	resp.Image = imageToProto(&created)
 
-	if err := i.publisher.Publish(ctx, "/images/create", &eventstypes.ImageCreate{
-		Name:   resp.Image.Name,
-		Labels: resp.Image.Labels,
-	}); err != nil {
-		return nil, err
-	}
-
 	return &resp, nil
-
 }
 
 func (i *ImageService) Update(ctx context.Context, req *imagesapi.UpdateImageRequest, _ ...grpc.CallOption) (*imagesapi.UpdateImageResponse, error) {
@@ -102,13 +92,6 @@ func (i *ImageService) Update(ctx context.Context, req *imagesapi.UpdateImageReq
 	}
 
 	resp.Image = imageToProto(&updated)
-
-	if err := i.publisher.Publish(ctx, "/images/update", &eventstypes.ImageUpdate{
-		Name:   resp.Image.Name,
-		Labels: resp.Image.Labels,
-	}); err != nil {
-		return nil, err
-	}
 
 	return &resp, nil
 }
