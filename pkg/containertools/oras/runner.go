@@ -76,15 +76,17 @@ func (o *OrasRunner) Pull(image string) error {
 	defer store.Close()
 
 	ctx := context.Background()
-	desc, _, err := oras.Pull(
+	desc, descs, err := oras.Pull(
 		ctx,
 		o.resolver,
 		image,
 		store,
 		oras.WithPullCallbackHandler(images.HandlerFunc(o.printPullProgress)),
-		oras.WithPullEmptyNameAllowed(),
+		// oras.WithPullEmptyNameAllowed(),
+		oras.WithContentProvideIngester(store),
 	)
 	o.logger.Debugf("desc: %v", desc)
+	o.logger.Debugf("descs: %v", descs)
 	o.logger.Infof("pulled: %s", image)
 	o.logger.Infof("digest: %s", desc.Digest)
 
