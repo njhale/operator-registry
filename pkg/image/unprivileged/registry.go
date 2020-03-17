@@ -8,7 +8,6 @@ import (
 
 	"github.com/containerd/containerd/archive"
 	"github.com/containerd/containerd/archive/compression"
-	"github.com/containerd/containerd/content"
 	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/images"
 	"github.com/containerd/containerd/namespaces"
@@ -44,7 +43,7 @@ func (r *Registry) Pull(ctx context.Context, ref string) error {
 		return err
 	}
 
-	if err := r.fetch(ctx, fetcher, root, r.Content()); err != nil {
+	if err := r.fetch(ctx, fetcher, root); err != nil {
 		return err
 	}
 
@@ -122,7 +121,7 @@ func (r *Registry) Close() error {
 	return r.close()
 }
 
-func (r *Registry) fetch(ctx context.Context, fetcher remotes.Fetcher, root ocispec.Descriptor, store content.Store) error {
+func (r *Registry) fetch(ctx context.Context, fetcher remotes.Fetcher, root ocispec.Descriptor) error {
 	visitor := images.HandlerFunc(func(ctx context.Context, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
 		r.log.WithField("digest", desc.Digest).Info("fetched")
 		r.log.Debug(desc)
@@ -131,8 +130,8 @@ func (r *Registry) fetch(ctx context.Context, fetcher remotes.Fetcher, root ocis
 
 	handler := images.Handlers(
 		visitor,
-		remotes.FetchHandler(store, fetcher),
-		images.ChildrenHandler(store),
+		remotes.FetchHandler(r.Content(), fetcher),
+		images.ChildrenHandler(r.Content()),
 	)
 
 	return images.Dispatch(ctx, handler, nil, root)
