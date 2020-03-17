@@ -27,7 +27,6 @@ func newRegistryAddCmd() *cobra.Command {
 	rootCmd.Flags().StringP("database", "d", "bundles.db", "relative path to database file")
 	rootCmd.Flags().StringSliceP("bundle-images", "b", []string{}, "comma separated list of links to bundle image")
 	rootCmd.Flags().Bool("permissive", false, "allow registry load errors")
-	rootCmd.Flags().StringP("container-tool", "c", "podman", "tool to interact with container images (save, build, etc.). One of: [docker, podman, unprivileged]")
 
 	return rootCmd
 }
@@ -47,16 +46,10 @@ func addFunc(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	containerTool, err := cmd.Flags().GetString("container-tool")
-	if err != nil {
-		return err
-	}
-
 	request := registry.AddToRegistryRequest{
 		Bundles:       bundleImages,
 		InputDatabase: fromFilename,
 		Permissive:    permissive,
-		ContainerTool: containerTool,
 	}
 
 	logger := logrus.WithFields(logrus.Fields{"bundles": bundleImages})

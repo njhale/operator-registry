@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/operator-framework/operator-registry/pkg/containertools"
+	"github.com/operator-framework/operator-registry/pkg/image"
 	"github.com/operator-framework/operator-registry/pkg/image/unprivileged"
 	"github.com/operator-framework/operator-registry/pkg/registry"
 	"github.com/operator-framework/operator-registry/pkg/sqlite"
@@ -23,7 +23,6 @@ type RegistryUpdater struct {
 type AddToRegistryRequest struct {
 	Permissive    bool
 	InputDatabase string
-	ContainerTool string
 	Bundles       []string
 }
 
@@ -44,9 +43,19 @@ func (r RegistryUpdater) AddToRegistry(request AddToRegistryRequest) error {
 		return err
 	}
 
+	reg, err := unprivileged.NewRegistry()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := reg.Close(); err != nil {
+			r.Logger.WithError(err).Warn("error closing local image registry")
+		}
+	}()
+
 	// TODO(njhale): Parallelize this once bundle add is commutative
 	for _, ref := range request.Bundles {
-		if err := r.populate(context.TODO(), dbLoader, ref, request.ContainerTool); err != nil {
+		if err := populate(context.TODO(), dbLoader, reg, ref); err != nil {
 			err = fmt.Errorf("error loading bundle from image: %s", err)
 			if !request.Permissive {
 				r.Logger.WithError(err).Error("permissive mode disabled")
@@ -60,43 +69,24 @@ func (r RegistryUpdater) AddToRegistry(request AddToRegistryRequest) error {
 	return utilerrors.NewAggregate(errs) // nil if no errors
 }
 
-func (r RegistryUpdater) populate(ctx context.Context, loader registry.Load, ref, containerTool string) error {
+func populate(ctx context.Context, loader registry.Load, reg image.Registry, ref string) error {
 	workingDir, err := ioutil.TempDir("./", "bundle_tmp")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(workingDir)
 
-	// Note: this is just a stop-gap until the command based interfaces are fronted by image.Registry
-	switch containerTool {
-	case "unprivileged":
-		reg, err := unprivileged.NewRegistry()
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err := reg.Close(); err != nil {
-				r.Logger.WithError(err).Warn("error closing local image registry")
-			}
-		}()
-
-		if err = reg.Pull(ctx, ref); err != nil {
-			return err
-		}
-
-		if err = reg.Unpack(ctx, ref, workingDir); err != nil {
-			return err
-		}
-	default:
-		reader := containertools.NewImageReader(containerTool, r.Logger)
-		if err := reader.GetImageData(ref, workingDir); err != nil {
-			return err
-		}
+	if err = reg.Pull(ctx, ref); err != nil {
+		return err
 	}
+
+	if err = reg.Unpack(ctx, ref, workingDir); err != nil {
+		return err
+	}
+
 	populator := registry.NewDirectoryPopulator(loader, workingDir, ref)
 
 	return populator.Populate()
-
 }
 
 type DeleteFromRegistryRequest struct {
