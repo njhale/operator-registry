@@ -3,8 +3,10 @@ package unprivileged
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/registry"
@@ -29,6 +31,7 @@ func setupRegistry(t *testing.T, ctx context.Context, rootDir string) string {
 	} else {
 		config.Storage = map[string]configuration.Parameters{"inmemory": map[string]interface{}{}}
 	}
+	config.HTTP.DrainTimeout = time.Duration(2) * time.Second
 
 	dockerRegistry, err := registry.NewRegistry(context.Background(), config)
 	require.NoError(t, err)
@@ -64,7 +67,7 @@ func TestPullAndUnpack(t *testing.T) {
 			description: "ByTag",
 			args: args{
 				dockerRootDir: "testdata/golden",
-				img:           "/olmtest/kiali:1.2.4",
+				img:           "/olmtest/kiali:1.4.2",
 			},
 			expected: expected{
 				checksum: dirChecksum(t, "testdata/golden/bundles/kiali"),
@@ -89,6 +92,7 @@ func TestPullAndUnpack(t *testing.T) {
 			host := setupRegistry(t, ctx, tt.args.dockerRootDir)
 			r, err := NewRegistry(
 				WithLog(logrus.New().WithField("test", t.Name())),
+				WithCacheDir(fmt.Sprintf("cache-%x", rand.Int())),
 			)
 			require.NoError(t, err)
 

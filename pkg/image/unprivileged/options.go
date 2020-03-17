@@ -31,6 +31,10 @@ func (r *RegistryConfig) complete() error {
 		return err
 	}
 
+	if r.DBPath == "" {
+		r.DBPath = filepath.Join(r.CacheDir, "metadata.db")
+	}
+
 	return nil
 }
 
@@ -40,7 +44,6 @@ func defaultConfig() *RegistryConfig {
 		ResolverConfigPath: "",
 		CacheDir:           "cache",
 	}
-	config.DBPath = filepath.Join(config.CacheDir, "metadata.db")
 
 	return config
 }
