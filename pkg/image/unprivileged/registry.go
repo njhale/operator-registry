@@ -60,25 +60,6 @@ func (r *Registry) Pull(ctx context.Context, ref string) error {
 	return err
 }
 
-// Push uploads an image to the remote registry of its reference.
-// If the referenced image does not exist in the registry, an error is returned.
-func (r *Registry) Push(ctx context.Context, ref string) error {
-	// Set the default namespace if unset
-	ctx = ensureNamespace(ctx)
-
-	img, err := r.Images().Get(ctx, ref)
-	if err != nil {
-		return err
-	}
-
-	pusher, err := r.resolver.Pusher(ctx, ref)
-	if err != nil {
-		return err
-	}
-
-	return remotes.PushContent(ctx, pusher, img.Target, r.Content(), nil, nil)
-}
-
 // Unpack writes the unpackaged content of an image to a directory.
 // If the referenced image does not exist in the registry, an error is returned.
 func (r *Registry) Unpack(ctx context.Context, ref, dir string) error {
@@ -107,14 +88,6 @@ func (r *Registry) Unpack(ctx context.Context, ref, dir string) error {
 	}
 
 	return nil
-}
-
-// Pack creates and stores an image based on the given reference and returns a reference to the new image.
-// If the referenced image does not exist in the registry, a new image is created from scratch.
-// If it exists, it's used as the base image.
-func (r *Registry) Pack(ctx context.Context, ref string, from io.Reader) (next string, err error) {
-	panic("not implemented")
-	return "", nil
 }
 
 func (r *Registry) Close() error {
