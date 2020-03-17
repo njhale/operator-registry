@@ -22,6 +22,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/operator-framework/api v0.1.1
 	github.com/otiai10/copy v1.0.2
+	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
@@ -37,5 +38,6 @@ require (
 	k8s.io/client-go v0.17.3
 	k8s.io/klog v1.0.0
 	k8s.io/kubectl v0.17.3
-	rsc.io/letsencrypt v0.0.3 // indirect
 )
+
+replace github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d

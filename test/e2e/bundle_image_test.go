@@ -682,7 +682,7 @@ func buildContainer(tag, dockerfilePath, context string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-var _ = Describe("Launch bundle", func() {
+var _ = PDescribe("Launch bundle", func() {
 	namespace := "default"
 	initImage := "init-operator-manifest:test"
 	bundleImage := "bundle-image:test"

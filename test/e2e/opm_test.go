@@ -3,19 +3,21 @@ package e2e_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-	"github.com/operator-framework/operator-registry/pkg/lib/bundle"
-	"github.com/operator-framework/operator-registry/pkg/lib/indexer"
-	"github.com/operator-framework/operator-registry/pkg/sqlite"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/otiai10/copy"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/rand"
+
+	"github.com/operator-framework/operator-registry/pkg/lib/bundle"
+	"github.com/operator-framework/operator-registry/pkg/lib/indexer"
+	"github.com/operator-framework/operator-registry/pkg/sqlite"
 )
 
 var (
@@ -32,8 +34,8 @@ var (
 	bundleTag3 = rand.String(6)
 	indexTag   = rand.String(6)
 
-	bundleImage = "quay.io/olmtest/e2e-bundle"
-	indexImage  = "quay.io/olmtest/e2e-index:" + indexTag
+	bundleImage = fmt.Sprintf("%s/olmtest/e2e-bundle", imageRegistryHost)
+	indexImage  = fmt.Sprintf("%s/olmtest/e2e-index:%s", imageRegistryHost, indexTag)
 )
 
 func inTemporaryBuildContext(f func() error) (rerr error) {
@@ -156,53 +158,53 @@ func initialize() error {
 	return loader.Populate()
 }
 
-var _ = ginkgo.Describe("opm", func() {
+var _ = Describe("opm", func() {
 	IncludeSharedSpecs := func(containerTool string) {
-		ginkgo.BeforeEach(func() {
-			dockerUsername := os.Getenv("DOCKER_USERNAME")
-			dockerPassword := os.Getenv("DOCKER_PASSWORD")
+		// BeforeEach(func() {
+		// 	dockerUsername := os.Getenv("DOCKER_USERNAME")
+		// 	dockerPassword := os.Getenv("DOCKER_PASSWORD")
 
-			if dockerUsername == "" || dockerPassword == "" {
-				ginkgo.Skip("registry credentials are not available")
-			}
+		// 	if dockerUsername == "" || dockerPassword == "" {
+		// 		Skip("registry credentials are not available")
+		// 	}
 
-			dockerlogin := exec.Command(containerTool, "login", "-u", dockerUsername, "-p", dockerPassword, "quay.io")
-			err := dockerlogin.Run()
-			gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error logging into quay.io")
-		})
+		// 	dockerlogin := exec.Command(containerTool, "login", "-u", dockerUsername, "-p", dockerPassword, imageRegistryHost)
+		// 	err := dockerlogin.Run()
+		// 	Expect(err).NotTo(HaveOccurred(), "Error logging into %s", imageRegistryHost)
+		// })
 
-		ginkgo.It("builds and manipulates bundle and index images", func() {
-			ginkgo.By("building bundles")
+		It("builds and manipulates bundle and index images", func() {
+			By("building bundles")
 			err := buildBundlesWith(containerTool)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("pushing bundles")
+			By("pushing bundles")
 			err = pushBundles(containerTool)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("building an index")
+			By("building an index")
 			err = buildIndexWith(containerTool)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("pushing an index")
+			By("pushing an index")
 			err = pushWith(containerTool, indexImage)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("exporting an index to disk")
+			By("exporting an index to disk")
 			err = exportWith(containerTool)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-			ginkgo.By("loading manifests from a directory")
+			By("loading manifests from a directory")
 			err = initialize()
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 	}
 
-	ginkgo.Context("using docker", func() {
+	Context("using docker", func() {
 		IncludeSharedSpecs("docker")
 	})
 
-	ginkgo.Context("using podman", func() {
+	PContext("using podman", func() {
 		IncludeSharedSpecs("podman")
 	})
 })
