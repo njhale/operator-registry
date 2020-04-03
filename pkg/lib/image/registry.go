@@ -44,5 +44,5 @@ func RunDockerRegistry(ctx context.Context, rootDir string) (string, error) {
 	}()
 
 	// Return the registry host string
-	return fmt.Sprintf("localhost:%d", dockerPort), nil
+	return fmt.Sprintf("my.registry:%d", dockerPort), nil
 }

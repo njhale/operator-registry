@@ -32,9 +32,6 @@ var (
 	bundleTag2 = rand.String(6)
 	bundleTag3 = rand.String(6)
 	indexTag   = rand.String(6)
-
-	bundleImage = "quay.io/olmtest/e2e-bundle"
-	indexImage  = "quay.io/olmtest/e2e-index:" + indexTag
 )
 
 func inTemporaryBuildContext(f func() error) (rerr error) {
@@ -160,16 +157,9 @@ func initialize() error {
 var _ = Describe("opm", func() {
 	IncludeSharedSpecs := func(containerTool string) {
 		BeforeEach(func() {
-			dockerUsername := os.Getenv("DOCKER_USERNAME")
-			dockerPassword := os.Getenv("DOCKER_PASSWORD")
-
-			if dockerUsername == "" || dockerPassword == "" {
-				Skip("registry credentials are not available")
+			if loginToRegistry != nil {
+				loginToRegistry(containerTool)
 			}
-
-			dockerlogin := exec.Command(containerTool, "login", "-u", dockerUsername, "-p", dockerPassword, "quay.io")
-			err := dockerlogin.Run()
-			Expect(err).NotTo(HaveOccurred(), "Error logging into quay.io")
 		})
 
 		It("builds and manipulates bundle and index images", func() {
@@ -203,7 +193,7 @@ var _ = Describe("opm", func() {
 		IncludeSharedSpecs("docker")
 	})
 
-	Context("using podman", func() {
-		IncludeSharedSpecs("podman")
-	})
+	// Context("using podman", func() {
+	// 	IncludeSharedSpecs("podman")
+	// })
 })

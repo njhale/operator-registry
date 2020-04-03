@@ -87,7 +87,8 @@ func NewRegistry(options ...RegistryOption) (registry *Registry, destroy func() 
 	}
 
 	var resolver remotes.Resolver
-	resolver, err = NewResolver(config.ResolverConfigDir, config.SkipTLS)
+	// resolver, err = NewResolver(config.ResolverConfigDir, config.SkipTLS)
+	resolver, err = NewResolver(config.ResolverConfigDir, true)
 	if err != nil {
 		return
 	}
