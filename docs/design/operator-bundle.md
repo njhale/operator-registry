@@ -201,6 +201,149 @@ The `Dockerfile` can be used manually to build the bundle image using container 
 $ docker build -f /path/to/Dockerfile -t quay.io/test/test-operator:latest /path/to/manifests/
 ```
 
+#### Generating a CSV ("CSVless bundles")
+
+In addition to scaffolding a bundle filesystem and `Dockerfile` with `bundle generate`, `opm` also provides a path for users to avoid explicitly providing a CSV.
+
+```bash
+# TODO(njhale): copy of command help output
+```
+
+In order to generate a CSV, `opm` can infer a good portion of its spec from some additional Kubernetes resource manifests provided in the bundle's manifest directory:
+
+- install strategies are derived from `Deployments`
+- permissions and cluster permissions are respectively derived from `Role` and `ClusterRoles` resources related to the `spec.InstallStrategy` by way of `ServiceAccount` and `(Cluster)RoleBindings`
+- any CRDs provided in the bundle are taken as owned CRDs
+
+The non-inferrable portion of the CSV spec must be explicitly provided by a user in the bundle's metadata. To this end, a new metadata file, typically named `olm.yaml` is utilized:
+
+```yaml
+name: my-operator.v2.3.4 # optional
+version: 2.3.4 # required
+minKubeVersion: v1.18 # required
+installModes: # required
+- type: OwnNamespace
+  supported: false
+- type: AllNamespace
+  supported: true
+- type: MultiNamespace
+  supported: false
+- type: SingleNamespace
+  supported: true
+description: "This is my operator. There are many like it, but this one is mine." # optional
+displayName: "My Operator" # optional
+keywords: # optional
+- "my"
+- "operator"
+labels: # optional
+  my: "operator"
+links: # optional
+- name: "MyOp"
+  url: "https://my.operator/my-op"
+maintainers: # optional
+- name: "Me"
+  email: "me@my.operator"
+maturity: "smooth-jazz"
+provider: # optional
+  name: "My Self"
+  url: "https://my.operator/my-self"
+selector: # optional
+  matchLabels:
+    my: "operator"
+icon: # optional
+- base64data: "..."
+  mediatype: "TODO(njhale)"
+replaces: my-operator.v2.3.3 # optional
+annotations: # optional
+  my: "operator"
+apis: # optional
+- name: "TODO(njhale)"
+  version: "v2"
+  kind: "TODO(njhale)"
+  displayName: "Mine"
+  description: "Defines something that's mine."
+  resources:
+  - name: "TODO(njhale)"
+    kind: "deployment"
+    version: "v1"
+ descriptors:
+ - type: "spec"
+   path: "TODO(njhale)"
+   displayName: "TODO(njhale)"
+   description: "TODO(njhale)"
+   x-descriptors:
+   - "TODO(njhale)"
+   value: "TODO(njhale)"
+ - type: "status"
+   path: "TODO(njhale)"
+   displayName: "TODO(njhale)"
+   description: "TODO(njhale)"
+   x-descriptors:
+   - "TODO(njhale)"
+   value: "TODO(njhale)"
+ - type: "action"
+   path: "TODO(njhale)"
+   displayName: "TODO(njhale)"
+   description: "TODO(njhale)"
+   x-descriptors:
+   - "TODO(njhale)"
+   value: "TODO(njhale)"
+```
+
+Required CRDs and APIServices can optionally be specified as dependencies in the [dependencies.yaml file](#TODO(njhale)).
+
+At minimum, CSV generation requires:
+- a `Deployment` resource in the bundle manifests directory
+- a file in the bundle metadata directory containing the fields commented as `required` in the `olm.yaml` example above
+
+Ex. A common bundle initialization pattern using CSV generation:
+
+```bash
+$ # Starting with a directory containing at least a Deployment
+$ tree my-operator
+my-operator
+├── mine.crd.yaml
+└── my-operator.deployment.yaml
+$ # Scaffold a bundle filesystem
+$ opm alpha bundle generate --directory my-operator --package my-operator  --channels stable
+# TODO(njhale): output
+$ tree my-operator
+my-operator
+├── manifests
+│   ├── mine.crd.yaml
+│   └── my-operator.deployment.yaml
+├── metadata
+│   └── annotations.yaml
+└── Dockerfile
+$ # Provide required generation metadata
+$ cat <<EOF > my-operator/metadata/olm.yaml
+> name: my-operator.v2.3.4
+> version: 2.3.4
+> minKubeVersion: v1.18
+> installModes:
+> - type: OwnNamespace
+>   supported: false
+> - type: AllNamespace
+>   supported: true
+> - type: MultiNamespace
+>   supported: false
+> - type: SingleNamespace
+>   supported: true
+> description: "This is my operator. There are many like it, but this one is mine."
+> displayName: "My Operator"
+> EOF
+$ # Generate the CSV
+$ opm alpha bundle generate-csv my-operator --overwrite
+$ tree my-operator
+├── manifests
+│   ├── mine.crd.yaml
+│   ├── my-operator.clusterserviceversion.yaml
+│   └── my-operator.deployment.yaml
+├── metadata
+│   └── annotations.yaml
+└── Dockerfile
+```
+
 ### Build Bundle Image
 
 Operator bundle image can be built from provided operator manifests using `build` command (see *Notes* below). The overall `bundle build` command usage is:
@@ -215,7 +358,7 @@ Flags:
   -h, --help                   help for build
   -b, --image-builder string   Tool to build container images. One of: [docker, podman, buildah] (default "docker")
   -u, --output-dir string      Optional output directory for operator manifests
-  -0, --overwrite              To overwrite annotations.yaml if existing
+  -o, --overwrite              To overwrite annotations.yaml if existing
   -p, --package string         The name of the package that bundle image belongs to
   -t, --tag string             The name of the bundle image will be built
 
