@@ -133,6 +133,136 @@ func (s *sqlLoader) addOperatorBundle(tx *sql.Tx, bundle *registry.Bundle) error
 	return s.addAPIs(tx, bundle)
 }
 
+func (s *sqlLoader) UpdateOperatorBundle(packageManifest registry.PackageManifest, bundle *registry.Bundle) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		tx.Rollback()
+	}()
+
+	addBundle, err := tx.Prepare("insert or replace into operatorbundle(name, csv, bundle, bundlepath, version, skiprange, replaces, skips) values(?, ?, ?, ?, ?, ?, ?, ?) on conflict(name) do update set csv=excluded.csv, bundle=excluded.bundle, bundlepath=excluded.bundle, version=excluded.version, skiprange=excluded.skiprange, replaces=excluded.replaces, skips=excluded.skips")
+	if err != nil {
+		return err
+	}
+	defer addBundle.Close()
+
+	addImage, err := tx.Prepare("insert into related_image(image, operatorbundle_name) values(?,?)")
+	if err != nil {
+		return err
+	}
+	defer addImage.Close()
+
+	csvName, bundleImage, csvBytes, bundleBytes, err := bundle.Serialize()
+	if err != nil {
+		return err
+	}
+
+	if csvName == "" {
+		return fmt.Errorf("csv name not found")
+	}
+
+	version, err := bundle.Version()
+	if err != nil {
+		return err
+	}
+	skiprange, err := bundle.SkipRange()
+	if err != nil {
+		return err
+	}
+	replaces, err := bundle.Replaces()
+	if err != nil {
+		return err
+	}
+	skips, err := bundle.Skips()
+	if err != nil {
+		return err
+	}
+
+	if _, err := addBundle.Exec(csvName, csvBytes, bundleBytes, bundleImage, version, skiprange, replaces, strings.Join(skips, ",")); err != nil {
+		return err
+	}
+
+	delImage, err := tx.Prepare("delete from related_image where operatorbundle_name=?")
+	if err != nil {
+		return err
+	}
+	defer delImage.Close()
+
+	_, err = delImage.Exec(csvName)
+	if err != nil {
+		return err
+	}
+
+	imgs, err := bundle.Images()
+	if err != nil {
+		return err
+	}
+	for img := range imgs {
+		if _, err := addImage.Exec(img, csvName); err != nil {
+			return err
+		}
+	}
+
+	delDep, err := tx.Prepare("delete from dependencies where operatorbundle_path=?")
+	if err != nil {
+		return err
+	}
+	defer delDep.Close()
+
+	_, err = delDep.Exec(bundleImage)
+	if err != nil {
+		return err
+	}
+
+	// Add dependencies information
+	err = s.addDependencies(tx, bundle)
+	if err != nil {
+		return err
+	}
+
+	delAPIProvider, err := tx.Prepare("delete from api_provider where operatorbundle_path=?")
+	if err != nil {
+		return err
+	}
+	defer delAPIProvider.Close()
+
+	delAPIRequirer, err := tx.Prepare("delete from api_requirer where operatorbundle_path=?")
+	if err != nil {
+		return err
+	}
+	defer delAPIRequirer.Close()
+
+	_, err = delAPIProvider.Exec(bundleImage)
+	if err != nil {
+		return err
+	}
+
+	_, err = delAPIRequirer.Exec(bundleImage)
+	if err != nil {
+		return err
+	}
+
+	delProp, err := tx.Prepare("delete from properties where operatorbundle_path=?")
+	if err != nil {
+		return err
+	}
+	defer delProp.Close()
+
+	_, err = delProp.Exec(bundleImage)
+	if err != nil {
+		return err
+	}
+
+	err = s.addBundleProperties(tx, bundle)
+	if err != nil {
+		return err
+	}
+
+	return s.addAPIs(tx, bundle)
+}
+
 func (s *sqlLoader) AddPackageChannelsFromGraph(graph *registry.Package) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -559,13 +689,13 @@ func (s *sqlLoader) addAPIs(tx *sql.Tx, bundle *registry.Bundle) error {
 	}
 	defer addAPI.Close()
 
-	addAPIProvider, err := tx.Prepare("insert into api_provider(group_name, version, kind, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?, ?)")
+	addAPIProvider, err := tx.Prepare("insert or replace into api_provider(group_name, version, kind, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
 	defer addAPIProvider.Close()
 
-	addAPIRequirer, err := tx.Prepare("insert into api_requirer(group_name, version, kind, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?, ?)")
+	addAPIRequirer, err := tx.Prepare("insert or replace into api_requirer(group_name, version, kind, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -679,6 +809,43 @@ func (s *sqlLoader) rmBundle(tx *sql.Tx, csvName string) error {
 	return nil
 }
 
+func (s *sqlLoader) RmCsv(pkg, csvName string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		tx.Rollback()
+	}()
+
+	stmt, err := tx.Prepare("DELETE FROM operatorbundle WHERE operatorbundle.name=?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.Exec(csvName); err != nil {
+		return err
+	}
+
+	stmt, err = tx.Prepare("DELETE FROM package WHERE package.name=?")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.Exec(pkg); err != nil {
+		return err
+	}
+
+	// err = s.rmChannelEntry(tx, csvName)
+	// if err != nil {
+	// 	return err
+	// }
+
+	return tx.Commit()
+}
+
 func (s *sqlLoader) AddBundleSemver(graph *registry.Package, bundle *registry.Bundle) error {
 	err := s.AddOperatorBundle(bundle)
 	if err != nil {
@@ -734,7 +901,7 @@ func (s *sqlLoader) AddBundlePackageChannels(manifest registry.PackageManifest, 
 }
 
 func (s *sqlLoader) addDependencies(tx *sql.Tx, bundle *registry.Bundle) error {
-	addDep, err := tx.Prepare("insert into dependencies(type, value, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?)")
+	addDep, err := tx.Prepare("insert or replace into dependencies(type, value, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
@@ -779,7 +946,7 @@ func (s *sqlLoader) addDependencies(tx *sql.Tx, bundle *registry.Bundle) error {
 }
 
 func (s *sqlLoader) addProperty(tx *sql.Tx, propType, value, bundleName, version, path string) error {
-	addProp, err := tx.Prepare("insert into properties(type, value, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?)")
+	addProp, err := tx.Prepare("insert or replace into properties(type, value, operatorbundle_name, operatorbundle_version, operatorbundle_path) values(?, ?, ?, ?, ?)")
 	if err != nil {
 		return err
 	}
