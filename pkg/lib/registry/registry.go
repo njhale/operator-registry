@@ -40,11 +40,19 @@ func (r RegistryUpdater) AddToRegistry(request AddToRegistryRequest) error {
 		return err
 	}
 	defer db.Close()
-
-	dbLoader, err := sqlite.NewSQLLiteLoader(db)
-	if err != nil {
-		return err
+	var dbLoader sqlite.MigratableLoader
+	if request.Overwrite {
+		dbLoader, err = sqlite.NewSQLLiteLoaderKeysOff(db)
+		if err != nil {
+			return err
+		}
+	} else {
+		dbLoader, err = sqlite.NewSQLLiteLoader(db)
+		if err != nil {
+			return err
+		}
 	}
+
 	if err := dbLoader.Migrate(context.TODO()); err != nil {
 		return err
 	}

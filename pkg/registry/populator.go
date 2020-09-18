@@ -117,7 +117,6 @@ func (i *DirectoryPopulator) globalSanityCheck(imagesToAdd []*ImageInput, mode M
 					validOverwrite = false
 					break
 				}
-				fmt.Printf("%v \n", bundle)
 
 				// ensure channels are the same
 				if _, ok := incomingChannels[channel]; !ok {
@@ -179,7 +178,7 @@ func (i *DirectoryPopulator) globalSanityCheck(imagesToAdd []*ImageInput, mode M
 				}
 				if defaultChannel != image.annotationsFile.GetDefaultChannelName() {
 					errs = append(errs, OverwriteErr{ErrorString: "default channel must match when using --overwrite-latest"})
-					continue
+					break
 				}
 				// ensure overwrite is not in the middle of a channel (i.e. nothing replaces it)
 				_, err = i.querier.GetBundleThatReplaces(context.TODO(), image.bundle.csv.GetName(), image.bundle.Package, channel)
@@ -245,7 +244,11 @@ func (i *DirectoryPopulator) loadManifests(imagesToAdd []*ImageInput, mode Mode)
 		// Add the overwriting bundles first
 		for _, overwriteBundle := range overwrites {
 			// Remove existing csv
-			err = i.overwriteManifests(overwriteBundle)
+			err = i.loader.ClearBundle(overwriteBundle.bundle.Package, overwriteBundle.bundle.csv.GetName())
+			if err != nil {
+				return err
+			}
+			err = i.loader.AddOperatorBundle(overwriteBundle.bundle)
 			if err != nil {
 				return err
 			}
@@ -292,29 +295,29 @@ func (i *DirectoryPopulator) loadManifests(imagesToAdd []*ImageInput, mode Mode)
 	return nil
 }
 
-func (i *DirectoryPopulator) overwriteManifests(overwriteBundle *ImageInput) error {
-	channels, err := i.querier.ListChannels(context.TODO(), overwriteBundle.annotationsFile.GetName())
-	existingPackageChannels := map[string]string{}
-	for _, c := range channels {
-		current, err := i.querier.GetCurrentCSVNameForChannel(context.TODO(), overwriteBundle.annotationsFile.GetName(), c)
-		if err != nil {
-			return err
-		}
-		existingPackageChannels[c] = current
-	}
+// func (i *DirectoryPopulator) overwriteManifests(overwriteBundle *ImageInput) error {
+// 	channels, err := i.querier.ListChannels(context.TODO(), overwriteBundle.annotationsFile.GetName())
+// 	existingPackageChannels := map[string]string{}
+// 	for _, c := range channels {
+// 		current, err := i.querier.GetCurrentCSVNameForChannel(context.TODO(), overwriteBundle.annotationsFile.GetName(), c)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		existingPackageChannels[c] = current
+// 	}
 
-	bcsv, err := overwriteBundle.bundle.ClusterServiceVersion()
-	if err != nil {
-		return fmt.Errorf("error getting csv from bundle %s: %s", overwriteBundle.bundle.Name, err)
-	}
+// 	bcsv, err := overwriteBundle.bundle.ClusterServiceVersion()
+// 	if err != nil {
+// 		return fmt.Errorf("error getting csv from bundle %s: %s", overwriteBundle.bundle.Name, err)
+// 	}
 
-	packageManifest, err := translateAnnotationsIntoPackage(overwriteBundle.annotationsFile, bcsv, existingPackageChannels)
-	if err != nil {
-		return fmt.Errorf("Could not translate annotations file into packageManifest %s", err)
-	}
+// 	packageManifest, err := translateAnnotationsIntoPackage(overwriteBundle.annotationsFile, bcsv, existingPackageChannels)
+// 	if err != nil {
+// 		return fmt.Errorf("Could not translate annotations file into packageManifest %s", err)
+// 	}
 
-	return i.loader.UpdateOperatorBundle(packageManifest, overwriteBundle.bundle)
-}
+// 	return i.loader.UpdateOperatorBundle(packageManifest, overwriteBundle.bundle)
+// }
 
 func (i *DirectoryPopulator) loadManifestsReplaces(bundle *Bundle, annotationsFile *AnnotationsFile) error {
 	channels, err := i.querier.ListChannels(context.TODO(), annotationsFile.GetName())
