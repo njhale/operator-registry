@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/operator-framework/operator-registry/pkg/image"
 	"github.com/operator-framework/operator-registry/pkg/registry"
-	"github.com/sirupsen/logrus"
 )
 
 type BundleExtractor interface {

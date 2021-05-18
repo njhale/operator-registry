@@ -171,13 +171,13 @@ func (i *DirectoryPopulator) loadManifests(imagesToAdd []*ImageInput, imagesToRe
 		return i.loadManifestsReplaces(append(imagesToAdd, imagesToReAdd...))
 	case SemVerMode:
 		for _, image := range imagesToAdd {
-			if err := i.loadManifestsSemver(image.Bundle, image.AnnotationsFile, false); err != nil {
+			if err := i.loadManifestsSemver(image.Bundle, false); err != nil {
 				return err
 			}
 		}
 	case SkipPatchMode:
 		for _, image := range imagesToAdd {
-			if err := i.loadManifestsSemver(image.Bundle, image.AnnotationsFile, true); err != nil {
+			if err := i.loadManifestsSemver(image.Bundle, true); err != nil {
 				return err
 			}
 		}
@@ -243,7 +243,7 @@ func (i *DirectoryPopulator) loadManifestsReplaces(images []*ImageInput) error {
 	return utilerrors.NewAggregate(errs)
 }
 
-func (i *DirectoryPopulator) loadManifestsSemver(bundle *Bundle, annotations *AnnotationsFile, skippatch bool) error {
+func (i *DirectoryPopulator) loadManifestsSemver(bundle *Bundle, skippatch bool) error {
 	graph, err := i.graphLoader.Generate(bundle.Package)
 	if err != nil && !errors.Is(err, ErrPackageNotInDatabase) {
 		return err
@@ -251,7 +251,7 @@ func (i *DirectoryPopulator) loadManifestsSemver(bundle *Bundle, annotations *An
 
 	// add to the graph
 	bundleLoader := BundleGraphLoader{}
-	updatedGraph, err := bundleLoader.AddBundleToGraph(bundle, graph, annotations, skippatch)
+	updatedGraph, err := bundleLoader.AddBundleToGraph(bundle, graph, &AnnotationsFile{Annotations: *bundle.Annotations}, skippatch)
 	if err != nil {
 		return err
 	}

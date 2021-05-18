@@ -30,6 +30,10 @@ func (p Property) Validate() error {
 	return nil
 }
 
+func (p Property) String() string {
+	return fmt.Sprintf("type: %s, value: %s", p.Type, p.Value)
+}
+
 type Package struct {
 	PackageName string `json:"packageName"`
 	Version     string `json:"version"`
